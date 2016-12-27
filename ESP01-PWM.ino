@@ -9,14 +9,15 @@
 #include <WiFiUdp.h>
 
 //Sensor details
-const char* sensorID1 = "LED005"; //Name of sensor
-const char* deviceDescription = "Hallway Lamp";
-const int defaultFade = 15; //Miliseconds between fade intervals
+const char* sensor1ID = "LED006"; //Name of sensor
+const char* sensor1Type = "2";
+const char* sensor1Description = "Hallway Lamp";
+const int defaultFade = 15; //Miliseconds between fade intervals - Think about putting this in EEPROM
 const int ledPin = 2; //LED pin number
 
 // WiFi parameters
-const char* ssid = ""; //Enter your WiFi network name here in the quotation marks
-const char* password = ""; //Enter your WiFi pasword here in the quotation marks
+const char* ssid = "TheSubway"; //Enter your WiFi network name here in the quotation marks - Will need to be in EEPROM
+const char* password = "vanillamoon576"; //Enter your WiFi pasword here in the quotation marks - Will need to be in EEPROM
 
 //Server details
 unsigned int localPort = 5007;  //UDP send port
@@ -56,6 +57,10 @@ void loop()
   }
   
   FadeLEDs(); //Fading script
+
+  if (WiFi.status() != WL_CONNECTED) {
+    ConnectWifi();
+  }
 }
 
 //--------------------------------------------------------------
@@ -72,6 +77,15 @@ void SetupLines() {
   // Start Serial port monitoring
   Serial.begin(115200);
   
+  ConnectWifi();
+  
+  digitalWrite(ledPin, HIGH); //Turn off LED while connecting
+  delay(50); //A flash of light to confirm that the lamp is ready to take commands
+  digitalWrite(ledPin, LOW); //Turn off LED while connecting
+  ledSetPoint=0; // input a setpoint for fading as we enter the loop
+}
+
+void ConnectWifi() {
   // Connect to WiFi
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
@@ -90,11 +104,7 @@ void SetupLines() {
 
   //Register on the network with the server after verifying connect
   delay(2000); //Time clearance to ensure registration
-  SendUdpValue("REG",sensorID1,String(deviceDescription)); //Register LED on server
-  digitalWrite(ledPin, HIGH); //Turn off LED while connecting
-  delay(50); //A flash of light to confirm that the lamp is ready to take commands
-  digitalWrite(ledPin, LOW); //Turn off LED while connecting
-  ledSetPoint=0; // input a setpoint for fading as we enter the loop
+  SendUdpValue("REG",sensor1ID,String(sensor1Description)); //Register LED on server
 }
 
 
@@ -129,7 +139,7 @@ void ProcessLedMessage(String dataIn) {
   message=dataIn.substring(7);
   Serial.println("Message reads after processing: " + message);
   
-  if (devID==sensorID1) { //Only do this set of commands if there is a message for an LED device
+  if (devID==sensor1ID) { //Only do this set of commands if there is a message for an LED device
     
     //Enables slow fading
     if (message.startsWith("fade")) { 
@@ -165,14 +175,14 @@ void ProcessLedMessage(String dataIn) {
 
     //Enables instant toggling
     if (((message=="instant toggle")||(message=="instant on")||(message=="instant 100")) && (ledPinState==0)) { //Only turn on if already off
-      SendUdpValue("LOG",sensorID1,String(100));
+      SendUdpValue("LOG",sensor1ID,String(100));
       ledPinState=100;
       ledSetPoint=100;
       digitalWrite(ledPin, HIGH);
       Serial.println("---Instant on triggered");
     }
     else if (((message=="instant toggle")  || (message=="instant off") || (message=="instant 0")) && (ledPinState>0)) { //Only turn off if already on
-      SendUdpValue("LOG",sensorID1,String(0));
+      SendUdpValue("LOG",sensor1ID,String(0));
       ledPinState=0;
       ledSetPoint=0;
       digitalWrite(ledPin, LOW);
@@ -180,27 +190,27 @@ void ProcessLedMessage(String dataIn) {
     }
 
     //Enables regular dimming
-    if (((message=="toggle")||(message=="on")) && (ledPinState==0)) { //Only turn on if already off
-      SendUdpValue("LOG",sensorID1,String(brightness));
+    if (((message=="toggle")||(message=="on") || ((message=="press") && (ledPinState==ledSetPoint))) && (ledPinState==0) && (ledPinState==0)) { //Only turn on if already off
+      SendUdpValue("LOG",sensor1ID,String(brightness));
       ledSetPoint=brightness; // input a setpoint for fading
       Serial.println("---On triggered");
       Serial.println("LED state is now has set point of " + String(ledSetPoint));
     }
-    else if (((message=="toggle") || (message=="off") || (message=="0")) && (ledPinState>0)) { //Only turn off if already on
-      SendUdpValue("LOG",sensorID1,String(0));
+    else if (((message=="toggle") || (message=="off") || (message=="0") || ((message=="press") && (ledPinState==ledSetPoint))) && (ledPinState>0)) { //Only turn off if already on
+      SendUdpValue("LOG",sensor1ID,String(0));
       ledSetPoint=0; // input a setpoint for fading
       Serial.println("---Off triggered");
       Serial.println("LED state is now has set point of " + String(ledSetPoint));
     }
-    else if (message=="hold") { //For stopping the fade
+    else if (((message=="hold") || (message=="press")) && (ledPinState!=ledSetPoint)) { //For stopping the fade
       brightness=ledPinState;
-      SendUdpValue("LOG",sensorID1,String(brightness));
+      SendUdpValue("LOG",sensor1ID,String(brightness));
       ledSetPoint=brightness;
       Serial.println("LED state is now has set point of " + String(ledSetPoint));
     }
     else if ((atoi(message.c_str())>0) && (atoi(message.c_str())<=1023) && (ledPinState!=atoi(message.c_str()))) { //Change brightness
       brightness=atoi(message.c_str());
-      SendUdpValue("LOG",sensorID1,String(brightness));
+      SendUdpValue("LOG",sensor1ID,String(brightness));
       ledSetPoint=brightness; // input a setpoint for fading
       Serial.print("---PWM trigger: ");
       Serial.println("LED state is now has set point of " + String(ledSetPoint));
@@ -234,7 +244,7 @@ void CheckTimer() {
     }
     else {
       timerCount=timerCount-1;
-      SendUdpValue("FWD",sensorID1,"off");
+      SendUdpValue("FWD",sensor1ID,"off");
     }
     delay(1);
   }
