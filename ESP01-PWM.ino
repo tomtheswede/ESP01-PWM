@@ -1,7 +1,7 @@
 /*  
- *   For a Desk lamp with an ESP-01 chip.
+ *   For a LED lamp with an ESP-01 chip.
  *   Most code by Thomas Friberg
- *   Updated 26/04/2016
+ *   Updated 27/12/2016
  */
 
 // Import ESP8266 libraries
@@ -74,8 +74,8 @@ void SetupLines() {
   pinMode(ledPin, OUTPUT); //Set as output
   digitalWrite(ledPin, 0); //Turn off LED while connecting
   
-  // Start Serial port monitoring
-  Serial.begin(115200);
+  // Start //Serial port monitoring
+  //Serial.begin(115200);
   
   ConnectWifi();
   
@@ -90,17 +90,17 @@ void ConnectWifi() {
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
-    Serial.print(".");
+    //Serial.print(".");
   }
-  Serial.println("");
-  Serial.print("WiFi connected with IP: ");
+  //Serial.println("");
+  //Serial.print("WiFi connected with IP: ");
   // Print the IP address
-  Serial.println(WiFi.localIP());
+  //Serial.println(WiFi.localIP());
 
   //Open the UDP monitoring port
   Udp.begin(localPort);
-  Serial.print("Udp server started at port: ");
-  Serial.println(localPort);
+  //Serial.print("Udp server started at port: ");
+  //Serial.println(localPort);
 
   //Register on the network with the server after verifying connect
   delay(2000); //Time clearance to ensure registration
@@ -112,12 +112,12 @@ String ParseUdpPacket() {
   int noBytes = Udp.parsePacket();
   String udpData = "";
   if ( noBytes ) {
-    Serial.print("---Packet of ");
-    Serial.print(noBytes);
-    Serial.print(" characters received from ");
-    Serial.print(Udp.remoteIP());
-    Serial.print(":");
-    Serial.println(Udp.remotePort());
+    //Serial.print("---Packet of ");
+    //Serial.print(noBytes);
+    //Serial.print(" characters received from ");
+    //Serial.print(Udp.remoteIP());
+    //Serial.print(":");
+    //Serial.println(Udp.remotePort());
     // We've received a packet, read the data from it
     Udp.read(packetBuffer,noBytes); // read the packet into the buffer
 
@@ -125,7 +125,7 @@ String ParseUdpPacket() {
     for (int i=1;i<=noBytes;i++) {
       udpData = udpData + char(packetBuffer[i - 1]);
     } // end for
-    Serial.println("Data reads: " + udpData);
+    //Serial.println("Data reads: " + udpData);
   } // end if
   return udpData;
 }
@@ -135,23 +135,23 @@ void ProcessLedMessage(String dataIn) {
   String message = "";
 
   devID=dataIn.substring(0,6); //Break down the message in to it's parts
-  Serial.println("DevID reads after processing: " + devID);
+  //Serial.println("DevID reads after processing: " + devID);
   message=dataIn.substring(7);
-  Serial.println("Message reads after processing: " + message);
+  //Serial.println("Message reads after processing: " + message);
   
   if (devID==sensor1ID) { //Only do this set of commands if there is a message for an LED device
     
     //Enables slow fading
     if (message.startsWith("fade")) { 
       int messagePos=message.indexOf(" ");
-      //Serial.println("Position of space is " + messagePos);
+      ////Serial.println("Position of space is " + messagePos);
       String fadeVal=message.substring(4,messagePos);
-      //Serial.println("Fade value is " + fadeVal);
+      ////Serial.println("Fade value is " + fadeVal);
       fadeSpeed=atoi(fadeVal.c_str());
-      //Serial.println("Fade speed set to " + fadeSpeed);
+      ////Serial.println("Fade speed set to " + fadeSpeed);
       message=message.substring(messagePos+1); //Cutting 'fade' from the message
-      Serial.println("Custom fade increment speed of " + fadeVal + " miliseconds trigged");
-      Serial.println("Message trimmed to : " + message);
+      //Serial.println("Custom fade increment speed of " + fadeVal + " miliseconds trigged");
+      //Serial.println("Message trimmed to : " + message);
     }
     else {
       fadeSpeed=defaultFade;
@@ -160,14 +160,14 @@ void ProcessLedMessage(String dataIn) {
     //Enables timed commands
     if (message.startsWith("timer")) { 
       int messagePos=message.indexOf(" ");
-      //Serial.println("Position of space is " + messagePos);
+      ////Serial.println("Position of space is " + messagePos);
       String timerVal=message.substring(5,messagePos);
-      //Serial.println("Fade value is " + fadeVal);
+      ////Serial.println("Fade value is " + fadeVal);
       timerCount=atoi(timerVal.c_str());
-      //Serial.println("Fade speed set to " + fadeSpeed);
+      ////Serial.println("Fade speed set to " + fadeSpeed);
       message=message.substring(messagePos+1); //Cutting 'timer' from the message
-      Serial.println("Custom timer of " + timerVal + " seconds set");
-      Serial.println("Message trimmed to: " + message);
+      //Serial.println("Custom timer of " + timerVal + " seconds set");
+      //Serial.println("Message trimmed to: " + message);
     }
     else {
       timerCount=0;
@@ -179,41 +179,41 @@ void ProcessLedMessage(String dataIn) {
       ledPinState=100;
       ledSetPoint=100;
       digitalWrite(ledPin, HIGH);
-      Serial.println("---Instant on triggered");
+      //Serial.println("---Instant on triggered");
     }
     else if (((message=="instant toggle")  || (message=="instant off") || (message=="instant 0")) && (ledPinState>0)) { //Only turn off if already on
       SendUdpValue("LOG",sensor1ID,String(0));
       ledPinState=0;
       ledSetPoint=0;
       digitalWrite(ledPin, LOW);
-      Serial.println("---Instant off triggered");
+      //Serial.println("---Instant off triggered");
     }
 
     //Enables regular dimming
     if (((message=="toggle")||(message=="on") || ((message=="press") && (ledPinState==ledSetPoint))) && (ledPinState==0) && (ledPinState==0)) { //Only turn on if already off
       SendUdpValue("LOG",sensor1ID,String(brightness));
       ledSetPoint=brightness; // input a setpoint for fading
-      Serial.println("---On triggered");
-      Serial.println("LED state is now has set point of " + String(ledSetPoint));
+      //Serial.println("---On triggered");
+      //Serial.println("LED state is now has set point of " + String(ledSetPoint));
     }
     else if (((message=="toggle") || (message=="off") || (message=="0") || ((message=="press") && (ledPinState==ledSetPoint))) && (ledPinState>0)) { //Only turn off if already on
       SendUdpValue("LOG",sensor1ID,String(0));
       ledSetPoint=0; // input a setpoint for fading
-      Serial.println("---Off triggered");
-      Serial.println("LED state is now has set point of " + String(ledSetPoint));
+      //Serial.println("---Off triggered");
+      //Serial.println("LED state is now has set point of " + String(ledSetPoint));
     }
     else if (((message=="hold") || (message=="press")) && (ledPinState!=ledSetPoint)) { //For stopping the fade
       brightness=ledPinState;
       SendUdpValue("LOG",sensor1ID,String(brightness));
       ledSetPoint=brightness;
-      Serial.println("LED state is now has set point of " + String(ledSetPoint));
+      //Serial.println("LED state is now has set point of " + String(ledSetPoint));
     }
     else if ((atoi(message.c_str())>0) && (atoi(message.c_str())<=1023) && (ledPinState!=atoi(message.c_str()))) { //Change brightness
       brightness=atoi(message.c_str());
       SendUdpValue("LOG",sensor1ID,String(brightness));
       ledSetPoint=brightness; // input a setpoint for fading
-      Serial.print("---PWM trigger: ");
-      Serial.println("LED state is now has set point of " + String(ledSetPoint));
+      //Serial.print("---PWM trigger: ");
+      //Serial.println("LED state is now has set point of " + String(ledSetPoint));
     }
   }
 }
@@ -222,13 +222,13 @@ void FadeLEDs() {
   if ((millis() % fadeSpeed == 0) && (ledPinState < ledSetPoint)) {
     ledPinState = ledPinState + 1;
     analogWrite(ledPin, PWMTable[ledPinState]);
-    Serial.println("LED state is now set to " + String(ledPinState));
+    //Serial.println("LED state is now set to " + String(ledPinState));
     delay(1);
   }
   else if ((millis() % fadeSpeed == 0) && (ledPinState > ledSetPoint)) {
     ledPinState = ledPinState - 1;
     analogWrite(ledPin, PWMTable[ledPinState]);
-    Serial.println("LED state is now set to " + String(ledPinState));
+    //Serial.println("LED state is now set to " + String(ledPinState));
     delay(1);
   }
 }
@@ -240,7 +240,7 @@ void CheckTimer() {
     }
     else if (timerCount>1) {
       timerCount=timerCount-1;
-      Serial.println("Timer value reduced to " + String(timerCount) + "");
+      //Serial.println("Timer value reduced to " + String(timerCount) + "");
     }
     else {
       timerCount=timerCount-1;
@@ -251,9 +251,9 @@ void CheckTimer() {
 }
 
 void SendUdpValue(String type, String sensorID, String value) {
-  //Print GPIO state in serial
-  Serial.print("-Value sent via UDP: ");
-  Serial.println(type + "," + sensorID + "," + value);
+  //Print GPIO state in //Serial
+  //Serial.print("-Value sent via UDP: ");
+  //Serial.println(type + "," + sensorID + "," + value);
 
   // send a message, to the IP address and port
   Udp.beginPacket(ipAdd,localPort);
