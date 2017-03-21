@@ -1,7 +1,7 @@
 /*  
  *   For a LED lamp with an ESP-01 chip.
  *   Most code by Thomas Friberg
- *   Updated 27/12/2016
+ *   Updated 21/03/2017
  */
 
 // Import ESP8266 libraries
@@ -9,14 +9,14 @@
 #include <WiFiUdp.h>
 
 //Sensor details
-const char* sensor1ID = "LED006"; //Name of sensor
+const char* sensor1ID = "LED002"; //Name of sensor
 const char* sensor1Type = "2";
-const char* sensor1Description = "Hallway Lamp";
+const char* sensor1Description = "Bedside table";
 const int defaultFade = 15; //Miliseconds between fade intervals - Think about putting this in EEPROM
-const int ledPin = 2; //LED pin number
+const int ledPin = 13; //LED pin number 12 for LED2, 13 for LED1
 
 // WiFi parameters
-const char* ssid = "TheSubway"; //Enter your WiFi network name here in the quotation marks - Will need to be in EEPROM
+const char* ssid = "FribergWifi"; //Enter your WiFi network name here in the quotation marks - Will need to be in EEPROM
 const char* password = "vanillamoon576"; //Enter your WiFi pasword here in the quotation marks - Will need to be in EEPROM
 
 //Server details
@@ -103,6 +103,7 @@ void ConnectWifi() {
   //Serial.println(localPort);
 
   //Register on the network with the server after verifying connect
+  
   delay(2000); //Time clearance to ensure registration
   SendUdpValue("REG",sensor1ID,String(sensor1Description)); //Register LED on server
 }
