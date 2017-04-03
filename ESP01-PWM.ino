@@ -9,11 +9,10 @@
 #include <WiFiUdp.h>
 
 //Sensor details
-const char* sensor1ID = "LED002"; //Name of sensor
+const char* sensor1ID = "LED004"; //Name of sensor
 const char* sensor1Type = "2";
-const char* sensor1Description = "Bedside table";
+const char* sensor1Description = "Bookshelf lamp";
 const int defaultFade = 15; //Miliseconds between fade intervals - Think about putting this in EEPROM
-const int ledPin = 13; //LED pin number 12 for LED2, 13 for LED1
 
 // WiFi parameters
 const char* ssid = "FribergWifi"; //Enter your WiFi network name here in the quotation marks - Will need to be in EEPROM
@@ -71,6 +70,8 @@ void loop()
 
 void SetupLines() {
   //Set pins and turn off LED
+  pinMode(13, OUTPUT); //Set as output
+  digitalWrite(13, 0); //Turn off LED while connecting
   pinMode(ledPin, OUTPUT); //Set as output
   digitalWrite(ledPin, 0); //Turn off LED while connecting
   
